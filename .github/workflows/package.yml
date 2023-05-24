@@ -1,0 +1,64 @@
+name: Package
+
+on:
+  push:
+    branches:
+      - 'master'
+      
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: full
+  
+jobs:
+  package:
+    name: package
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Update submodules
+      run: git submodule update --init
+    - name: Build contract
+      run: make all-via-docker
+    - uses: dev-drprasad/delete-older-releases@v0.2.1
+      with:
+        keep_latest: 0
+        delete_tag_pattern: scripts
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+      with:
+        tag_name: scripts
+        release_name: Release CKB Production Scripts
+        draft: false
+        prerelease: false
+    - name: upload-acp-file
+      uses: actions/upload-release-asset@v1
+      env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        asset_path: ${{ github.workspace }}/build/anyone_can_pay
+        asset_name: anyone_can_pay
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_content_type: application/octet-stream
+    - name: upload-omni_lock-file
+      uses: actions/upload-release-asset@v1
+      env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        asset_path: ${{ github.workspace }}/build/omni_lock
+        asset_name: omni_lock
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_content_type: application/octet-stream
+    - name: upload-sudt-file
+      uses: actions/upload-release-asset@v1
+      env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        asset_path: ${{ github.workspace }}/build/simple_udt
+        asset_name: simple_udt
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_content_type: application/octet-stream
